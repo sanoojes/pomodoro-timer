@@ -2,6 +2,7 @@ import { MODE } from "@/constants/enum";
 import { TimerContext } from "@/context/TimerContext";
 import { CountdownTimerProps } from "@/types/types";
 import { useContext, useEffect, useRef, useState } from "react";
+import { toast } from "./use-toast";
 
 const CountdownTimer = ({ callbackFn }: CountdownTimerProps) => {
   const { mode, timerText, isStarted } = useContext(TimerContext);
@@ -10,15 +11,24 @@ const CountdownTimer = ({ callbackFn }: CountdownTimerProps) => {
   const [currText, setCurrText] = useState("00:00");
 
   const handleSetCurrText = () => {
-    if (mode === MODE.POMO) setCurrText(timerText.pomodoro);
-    else if (mode === MODE.SHORTBREAK) setCurrText(timerText.sbreak);
-    else setCurrText(timerText.lbreak);
+    let currText;
+    if (mode === MODE.POMO) currText = timerText.pomo;
+    else if (mode === MODE.SHORTBREAK) currText = timerText.sbreak;
+    else currText = timerText.lbreak;
+    setCurrText(currText);
   };
 
-  useEffect(() => handleSetCurrText(), [mode]);
+  useEffect(() => handleSetCurrText(), [mode, timerText, isStarted]);
 
   useEffect(() => {
     function startTimer(duration: number) {
+      if (duration < 1) {
+        toast({
+          title: "Timer cannot be started with zero duration",
+          variant: "destructive",
+        });
+        return;
+      }
       currDate.current = Date.now();
 
       let diff: number, minutes, seconds;
@@ -33,7 +43,7 @@ const CountdownTimer = ({ callbackFn }: CountdownTimerProps) => {
         seconds = seconds < 10 ? "0" + seconds : seconds;
 
         setCurrText(`${minutes}:${seconds}`);
-        if (diff <= 0) {
+        if (diff < 1) {
           callbackFn?.();
           clearInterval(Number(intervalRef.current));
         }
@@ -55,13 +65,13 @@ const CountdownTimer = ({ callbackFn }: CountdownTimerProps) => {
       }
     } else {
       if (intervalRef.current) {
-        clearInterval(Number(intervalRef.current));
+        clearInterval(intervalRef.current as number);
         intervalRef.current = null;
       }
     }
-  }, [isStarted]);
+  }, [isStarted, mode]);
 
-  return <p className='text-9xl font-bold'>{currText}</p>;
+  return <p className='text-8xl md:text-9xl font-bold'>{currText}</p>;
 };
 
 export default CountdownTimer;
